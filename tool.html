@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="chinese (simplified)">
+<head>
+        <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>wikibook | typora+picgo搭建博客</title>
+    <link rel="shortcut icon" type="image/png" href="/favicon.png">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/theme/css/main.css" type="text/css" />
+    <link rel="stylesheet" href="/theme/css/pygments.css" type="text/css" />
+    <meta name="generator" content="Pelican" />
+    <meta name="description" content="" />
+    <meta name="author" content="sniper" />
+
+    <meta name="keywords" content="typora,picgo" />
+</head>
+<body>
+    <header>
+        <nav style="overflow: hidden;">
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="https://github.com/">GitHub</a></li>
+                <li><a href="/tags">Tags</a></li>
+                <li><a href="/authors">Authors</a></li>
+                <li><a href="/categories">Categories</a></li>
+                <li><a href="/archives">Archives</a></li>
+            </ul>
+        </nav>
+        <div class="header_box" style="height: 50px">
+        <h1><a href="/">
+            <image src='' class="avatar" width="50px" /><span class="site_title">wikibook</span>
+            </a></h1></div>
+        </div>
+    </header>
+    <div id="wrapper">
+        <div id="content">            <h4 class="date">12月 03, 2010</h4>
+
+            <article class="post">
+                <h2 class="title">
+                    <a href="/tool.html" rel="bookmark" title="Permanent Link to &quot;typora+picgo搭建博客&quot;">typora+picgo搭建博客</a>
+                </h2>
+
+                
+                
+
+                <h1>Typora+PicGo+Gitee搭建博客写作环境</h1>
+<h2>一、安装typora</h2>
+<p><a href="https://phen.coding.net/p/book-wiki/d/init-linux-env/git/tree/master/install_software.md">详见</a></p>
+<h2>二、创建Gitee图床仓</h2>
+<ol>
+<li>新建名为oss的仓库，初始化仓库并设置为开源，并创建一个images的目录</li>
+</ol>
+<p><img alt="image-20230113224825150" src="https://i.328888.xyz/2023/01/13/wxEgd.png" title="920222550057233-pchen-20230113224825-6e8a3558ca0d2d18c0e1ffcd827a0b09.png"></p>
+<ol>
+<li>设置私人令牌</li>
+</ol>
+<p><img alt="image-20230113225247458" src="https://i.328888.xyz/2023/01/13/wx5jx.png" title="970169486057026-pchen-20230113225247-fb7d9262408acb9e8872acc31f30d9d9.png"></p>
+<ol>
+<li>码云(gitee)涉及图床失效问题，考虑使用其他替代方案：<strong>阿里云的 OSS</strong></li>
+</ol>
+<h2>三、PicGo配置</h2>
+<ol>
+<li>安装picgo</li>
+</ol>
+<p><a href="https://phen.coding.net/p/book-wiki/d/init-linux-env/git/tree/master/install_software.md">详见</a></p>
+<ol>
+<li>安装gitee插件</li>
+</ol>
+<p>点击左侧的“插件设置”，搜索插件“gitee-uploader”并安装</p>
+<p><img alt="image-20230113225417605" src="https://i.328888.xyz/2023/01/13/wx9xU.png" title="328332649316119-pchen-20230113225417-c4b38d35fb03ec13561250525ae3758e.png"></p>
+<ol>
+<li>
+<p>配置gitee</p>
+</li>
+<li>
+<p>安装完毕重新启动，点开"图床设置"可以看到 gitee图床，点击“gitee”</p>
+<p><img alt="image-20230113225507742" src="https://i.328888.xyz/2023/01/13/wxJLv.png" title="125209439898660-pchen-20230113225507-92870ec4bd0f177d6e4fb507b768732c.png"></p>
+</li>
+<li>
+<p>属性选项说明如下</p>
+</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>repo</td>
+<td>gitee仓库名称: pymango/oss</td>
+</tr>
+<tr>
+<td>token</td>
+<td>设置的私人令牌</td>
+</tr>
+<tr>
+<td>branch</td>
+<td>代码床分支：默认master</td>
+</tr>
+<tr>
+<td>path</td>
+<td>图片存储路径：images</td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li>
+<p>其他配置</p>
+</li>
+<li>
+<p>设置PigGo-Server</p>
+<p><img alt="image-20230113225602288" src="https://i.328888.xyz/2023/01/13/wxMcy.png" title="1122001483711418-pchen-20230113225602-2eb65f44111b1551e0fa5323e811a667.png"></p>
+</li>
+<li>
+<p>打开“时间戳重命名”</p>
+<p><img alt="image-20230113225644110" src="https://i.328888.xyz/2023/01/13/wxPo5.png" title="567532310967114-pchen-20230113225644-96156fdb187c387f51142251c5cc6f61.png"></p>
+</li>
+</ol>
+<h2>四、Typora配置接入图床</h2>
+<ol>
+<li>打开<code>Typora</code> -&gt; 文件 -&gt; 偏好设置 -&gt; 图像，按照①②③④⑤配置。其中<strong>④</strong>处注意下，路径为picgo命令路径</li>
+</ol>
+<p><img alt="image-20230113225731223" src="https://i.328888.xyz/2023/01/13/wx18Z.png" title="44638456280852-pchen-20230113225731-26b7a1867c9df45308d6dce45485c886.png"></p>
+<ol>
+<li>点击⑤处，出现如下结果表示配置成功</li>
+</ol>
+<p><img alt="image-20230113225851881" src="https://i.328888.xyz/2023/01/13/wxQFF.png" title="950404720957574-pchen-20230113225851-c68980fafa0cf10aac9fdfbd45f879b5.png"></p>
+<h1>Typora+PyPicGo+Imgloc+百度云盘搭建博客写作环境</h1>
+<h2>一、fork Pypicgo源码</h2>
+<p><a href="https://jihulab.com/pystd/pypicgo.git">github仓</a></p>
+<h2>二、二次开发pypicgo</h2>
+<ol>
+<li>基于<a href="https://v4-docs.chevereto.com/developer/api/api-v1.html">imgloc api</a>开发imgloc图床uploader</li>
+<li>基于<a href="https://pan.baidu.com/union/doc/nksg0sbfs">百度网盘api</a>开发百度网盘plugins，用于备份图片</li>
+<li>修改配置文件 <code>~/.PyPicGo/config.yaml</code></li>
+<li>设置uploader为imgloc且添加BaiduNetdiskPlugin插件</li>
+</ol>
+<h2>三、Typora配置接入图床</h2>
+<p>配置上传命令为：<code>/mnt/linux/pyenv/python3.10/bin/python /mnt/linux/apps/PyPicGo/run.py -f</code></p>
+                <div class="clear"></div>
+
+                <div class="info">
+                    <a href="/tool.html">posted at 10:20</a>
+                    &nbsp;&middot;&nbsp;<a href="/category/tools.html" rel="tag">tools</a>
+                    &nbsp;&middot;
+                    &nbsp;<a href="/tag/typora.html" class="tags">typora</a>
+                    &nbsp;<a href="/tag/picgo.html" class="tags">picgo</a>
+                </div>
+            </article>
+        </div>
+        <div class="clear"></div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="chinese (simplified)">
+<head>
+        <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>wikibook | 01-初识cython</title>
+    <link rel="shortcut icon" type="image/png" href="/favicon.png">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/theme/css/main.css" type="text/css" />
+    <link rel="stylesheet" href="/theme/css/pygments.css" type="text/css" />
+    <meta name="generator" content="Pelican" />
+    <meta name="description" content="" />
+    <meta name="author" content="sniper" />
+
+    <meta name="keywords" content="cython" />
+</head>
+<body>
+    <header>
+        <nav style="overflow: hidden;">
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="https://github.com/">GitHub</a></li>
+                <li><a href="/tags">Tags</a></li>
+                <li><a href="/authors">Authors</a></li>
+                <li><a href="/categories">Categories</a></li>
+                <li><a href="/archives">Archives</a></li>
+            </ul>
+        </nav>
+        <div class="header_box" style="height: 50px">
+        <h1><a href="/">
+            <image src='' class="avatar" width="50px" /><span class="site_title">wikibook</span>
+            </a></h1></div>
+        </div>
+    </header>
+    <div id="wrapper">
+        <div id="content">            <h4 class="date">12月 03, 2010</h4>
+
+            <article class="post">
+                <h2 class="title">
+                    <a href="/01-chu-shi-cython.html" rel="bookmark" title="Permanent Link to &quot;01-初识cython&quot;">01-初识cython</a>
+                </h2>
+
+                
+                
+
+                <ul>
+<li><a href="#cython使用场景">Cython使用场景</a></li>
+<li><a href="#cython是什么">Cython是什么</a></li>
+<li><a href="#cython-和-cpython-的区别">Cython 和 CPython 的区别</a></li>
+<li><a href="#pythoncc扩展和cython效率对比">Python、C、C扩展和Cython效率对比</a></li>
+<li><a href="#斐波那契数列代码">斐波那契数列代码</a></li>
+<li><a href="#测试结果">测试结果</a></li>
+<li><a href="#差异分析">差异分析</a></li>
+<li><a href="#总结">总结</a></li>
+</ul>
+<h1>Cython使用场景</h1>
+<ol>
+<li>
+<p>因为某些需求导致不得不编写一些多重嵌套的循环, 而这些循环如果用 C 语言来实现会快几百倍, 但是不熟悉 C 或者不知道 Python 如何与 C 进行交互.</p>
+</li>
+<li>
+<p>因为 Python 解释器的性能原因, 如果将 CPython 解释器换成 PyPy, 或者干脆换一门语言, 比如 Julia, 将会得到明显的性能提升, 可是换不得.因为你的项目组规定只能使用 Python 语言, 解释器只能 CPython.</p>
+</li>
+<li>
+<p>Python 是一门动态语言, 但你希望至少在数字计算方面, 能够加入可选的静态类型, 这样可以极大的加速运算效果.因为单纯的数字相加不太需要所谓的动态性, 尤其是当你的程序中出现了大量的计算逻辑时.</p>
+</li>
+<li>
+<p>对于一些计算密集型的部分, 你希望能够写出一些超越 Numpy、Scipy、Pandas 的算法.</p>
+</li>
+<li>
+<p>你有一些已经用 C、C++ 实现的库, 你想直接在 Python 内部更好地调用它们, 并且不使用 ctypes、cffi 等模块.</p>
+</li>
+<li>
+<p>也许你听说过 Python 和 C 可以无缝结合, 通过 C 来为 Python 编写扩展模块, 将 Python 代码中性能关键的部分使用 C 进行重写, 来达到提升性能的效果.但是这需要你对 Python 解释器有很深的了解, 熟悉底层的 Python/C API, 而这是一件非常痛苦的事情.</p>
+</li>
+</ol>
+<h1>Cython是什么</h1>
+<ol>
+<li>Cython 是一门编程语言, 它将 C、C++ 的静态类型系统融合在了 Python 身上.</li>
+<li>
+<p>文件的后缀是 .pyx, 是 Python 的一个超集；语法是 Python 语法和 C 语法的混血, 当然我们说它是 Python 的一个超集, 因此你写纯 Python 代码也是可以的.</p>
+</li>
+<li>
+<p>cython 是一个编译器, 负责将 Cython 源代码翻译成高效的 C 或者 C++ 源代码；Cython 源文件被编译之后的最终形式可以是 Python 的扩展模块(.pyd), 也可以是一个独立的可执行文件.</p>
+</li>
+</ol>
+<h1>Cython 和 CPython 的区别</h1>
+<ol>
+<li>
+<p>CPython 是 Python 语言对应的解释器</p>
+<ul>
+<li>解释型语言, 需要对应的解释器; 编译型语言, 需要对应的编译器</li>
+<li>Python 语言解释器还有Jython(java实现)、PyPy(Python 语言实现)等等</li>
+<li>CPython 是由 C 实现, 给 Python 语言提供 C 级别的接口, 也就是熟知的 Python/C API</li>
+<li>Python 中的列表, 底层对应的是 PyListObject</li>
+<li>Python 中的字典, 则对应 PyDictObject</li>
+</ul>
+</li>
+<li>
+<p>Cython 是一门语言, 可以通过 Cython 源代码生成高效的扩展模块, 同样需要 CPython 来进行调用.</p>
+</li>
+</ol>
+<h1>Python、C、C扩展和Cython效率对比</h1>
+<h2>斐波那契数列代码</h2>
+<ol>
+<li>
+<p>纯Python
+    <code>python
+    def fib(n):
+        a, b = 0.0, 1.0
+        for i in range(n):
+            a, b = a + b, a
+        return a</code></p>
+</li>
+<li>
+<p>纯C
+    <code>c
+    double cfib(int n) {
+        int i;
+        double a=0.0, b=1.0, tmp;
+        for (i=0; i&lt;n; ++i) {
+            tmp = a; a = a + b; b = tmp;
+        }
+        return a;
+    }</code></p>
+</li>
+<li>
+<p>C扩展</p>
+<p><code>c
+static PyObject *
+fib(PyObject *self, PyObject *n) {
+    if (!PyLong_CheckExact(n)) {
+        PyErr_Format(PyExc_ValueError, "function fib excepted int, not %s", Py_TYPE(n) -&gt; tp_name);
+        return NULL;
+    }
+    PyObject *z;
+    double a = 0.0, b = 1.0, tmp;
+    int i;
+    for (i = 0; i &lt; PyLong_AsLong(n); i++){
+        tmp = a; a = a + b; b = tmp;
+    }
+    z = PyFloat_FromDouble(a);
+    return z;
+}</code></p>
+</li>
+<li>
+<p>Cython</p>
+<p><code>python
+def fib(int n):
+    cdef int i
+    cdef double a = 0.0, b = 1.0
+    for i in range(n):
+        a, b = a + b, a
+    return a</code></p>
+</li>
+</ol>
+<h2>测试结果</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;"></th>
+<th style="text-align: right;">fib(0)耗时/ns</th>
+<th style="text-align: right;">提升倍数</th>
+<th style="text-align: right;">fib(90)耗时/ns</th>
+<th style="text-align: right;">提升倍数</th>
+<th style="text-align: right;">循环体耗时/ns</th>
+<th style="text-align: right;">提升倍数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">纯Python</td>
+<td style="text-align: right;">590</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">12852</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">12262</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: right;">纯C</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">295</td>
+<td style="text-align: right;">164</td>
+<td style="text-align: right;">78</td>
+<td style="text-align: right;">162</td>
+<td style="text-align: right;">76</td>
+</tr>
+<tr>
+<td style="text-align: right;">C扩展</td>
+<td style="text-align: right;">220</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">386</td>
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">166</td>
+<td style="text-align: right;">74</td>
+</tr>
+<tr>
+<td style="text-align: right;">Cython</td>
+<td style="text-align: right;">90</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">258</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">168</td>
+<td style="text-align: right;">73</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>fib(0), 显然它没有真正进行循环, 测量的是调用一个函数所需要花费的开销</li>
+<li>循环体耗时, 是执行 fib(90) 的时候, 排除函数调用本身的开销, 也就是执行内部循环体所花费的时间</li>
+</ul>
+<h2>差异分析</h2>
+<ol>
+<li>Python 调用一个函数的时候需要创建一个栈帧, 而这个栈帧是分配在堆上的, 而且结束之后还要涉及栈帧的销毁</li>
+<li>C 扩展本质也是 C 语言, 只不过在编写的时候遵循 Python 提供的 API 规范, 可以将 C 代码编译成 pyd 文件, 直接让 Python 来调用</li>
+<li>Cython 做的事情和 C 扩展本质是类似, 都是为 Python 提供扩展模块</li>
+</ol>
+<hr>
+<ul>
+<li>算数操作方面对比</li>
+<li>Python执行 a+b 等价于: 检测数据类型 -&gt; 判断是否有__add__以及能否相加 -&gt; 调用__add__方法, 将a 和 b 指向的对象进行相加 -&gt; 指针转化成 PyObject * 返回</li>
+<li>C 和 Cython 创建变量的时候就实现规定了类型, 因此编译之后的 a + b 只是一条简单的机器指令</li>
+<li>内存分配方面对比</li>
+<li>Python 中的对象是分配在堆上面, 本质上就是 C 中的 malloc 函数为结构体在堆区申请的一块内存. 堆区进行内存的分配和释放需要付出很大的代价</li>
+<li>Cython 分配的变量是分配在栈上, 由操作系统维护的，会自动回收，效率极高</li>
+</ul>
+<h2>总结</h2>
+<div class="highlight"><pre><span></span><code>并非所有的 Python 代码在使用 Cython 时, 都能获得巨大的性能改进. 比如: 内存密集、I/O 密集、网络密集
+</code></pre></div>
+                <div class="clear"></div>
+
+                <div class="info">
+                    <a href="/01-chu-shi-cython.html">posted at 10:20</a>
+                    &nbsp;&middot;&nbsp;<a href="/category/python.html" rel="tag">Python</a>
+                    &nbsp;&middot;
+                    &nbsp;<a href="/tag/cython.html" class="tags">cython</a>
+                </div>
+            </article>
+        </div>
+        <div class="clear"></div>
+    </div>
+</body>
+</html>

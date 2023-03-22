@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="chinese (simplified)">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>wikibook | articles tagged "cython"</title>
+    <link rel="shortcut icon" type="image/png" href="/favicon.png">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/theme/css/main.css" type="text/css" />
+    <link rel="stylesheet" href="/theme/css/pygments.css" type="text/css" />
+    <meta name="generator" content="Pelican" />
+    <meta name="description" content="" />
+    <meta name="author" content="sniper" />
+</head>
+<body>
+    <header>
+        <nav style="overflow: hidden;">
+            <ul>
+                <li class="ephemeral selected"><a href="/tag/cython.html">cython</a></li>
+                <li><a href="/">Home</a></li>
+                <li><a href="https://github.com/">GitHub</a></li>
+                <li><a href="/tags">Tags</a></li>
+                <li><a href="/authors">Authors</a></li>
+                <li><a href="/categories">Categories</a></li>
+                <li><a href="/archives">Archives</a></li>
+            </ul>
+        </nav>
+        <div class="header_box" style="height: 50px">
+        <h1><a href="/">
+            <image src='' class="avatar" width="50px" /><span class="site_title">wikibook</span>
+            </a></h1></div>
+        </div>
+    </header>
+    <div id="wrapper">
+        <div id="content">            <h4 class="date">12月 03, 2010</h4>
+
+            <article class="post">
+                <h2 class="title">
+                    <a href="/01-chu-shi-cython.html" rel="bookmark" title="Permanent Link to &quot;01-初识cython&quot;">01-初识cython</a>
+                </h2>
+
+                
+                
+
+                <ul>
+<li><a href="#cython使用场景">Cython使用场景</a></li>
+<li><a href="#cython是什么">Cython是什么</a></li>
+<li><a href="#cython-和-cpython-的区别">Cython 和 CPython 的区别</a></li>
+<li><a href="#pythoncc扩展和cython效率对比">Python、C、C扩展和Cython效率对比</a></li>
+<li><a href="#斐波那契数列代码">斐波那契数列代码</a></li>
+<li><a href="#测试结果">测试结果</a></li>
+<li><a href="#差异分析">差异分析</a></li>
+<li><a href="#总结">总结</a></li>
+</ul>
+<h1>Cython使用场景</h1>
+<ol>
+<li>
+<p>因为某些需求导致不得不编写一些多重嵌套的循环, 而这些循环如果用 C 语言来实现会快几百倍, 但是不熟悉 C 或者不知道 Python 如何与 C 进行交互.</p>
+</li>
+<li>
+<p>因为 Python 解释器的性能原因, 如果将 CPython 解释器换成 PyPy, 或者干脆换一门语言, 比如 Julia, 将会得到明显的性能提升, 可是换不得.因为你的项目组规定只能使用 Python 语言, 解释器只能 CPython.</p>
+</li>
+<li>
+<p>Python 是一门动态语言, 但你希望至少在数字计算方面, 能够加入可选的静态类型, 这样可以极大的加速运算效果.因为单纯的数字相加不太需要所谓的动态性, 尤其是当你的程序中出现了大量的计算逻辑时.</p>
+</li>
+<li>
+<p>对于一些计算密集型的部分, 你希望能够写出一些超越 Numpy、Scipy、Pandas 的算法.</p>
+</li>
+<li>
+<p>你有一些已经用 C、C++ 实现的库, 你想直接在 Python 内部更好地调用它们, 并且不使用 ctypes、cffi 等模块.</p>
+</li>
+<li>
+<p>也许你听说过 Python 和 C 可以无缝结合, 通过 C 来为 Python 编写扩展模块, 将 Python 代码中性能关键的部分使用 C 进行重写, 来达到提升性能的效果.但是这需要你对 Python 解释器有很深的了解, 熟悉底层的 Python/C API, 而这是一件非常痛苦的事情.</p>
+</li>
+</ol>
+<h1>Cython是什么</h1>
+<ol>
+<li>Cython 是一门编程语言, 它将 C、C++ 的静态类型系统融合在了 Python 身上.</li>
+<li>
+<p>文件的后缀是 .pyx, 是 Python 的一个超集；语法是 Python 语法和 C 语法的混血, 当然我们说它是 Python 的一个超集, 因此你写纯 Python 代码也是可以的.</p>
+</li>
+<li>
+<p>cython 是一个编译器, 负责将 Cython 源代码翻译成高效的 C 或者 C++ 源代码；Cython 源文件被编译之后的最终形式可以是 Python 的扩展模块(.pyd), 也可以是一个独立的可执行文件.</p>
+</li>
+</ol>
+<h1>Cython 和 CPython 的区别</h1>
+<ol>
+<li>
+<p>CPython 是 Python 语言对应的解释器</p>
+<ul>
+<li>解释型语言, 需要对应的解释器; 编译型语言, 需要对应的编译器</li>
+<li>Python 语言解释器还有Jython(java实现)、PyPy(Python 语言实现)等等</li>
+<li>CPython 是由 C 实现, 给 Python 语言提供 C 级别的接口, 也就是熟知的 Python/C API</li>
+<li>Python 中的列表, 底层对应的是 PyListObject</li>
+<li>Python 中的字典, 则对应 PyDictObject</li>
+</ul>
+</li>
+<li>
+<p>Cython 是一门语言, 可以通过 Cython 源代码生成高效的扩展模块, 同样需要 CPython 来进行调用.</p>
+</li>
+</ol>
+<h1>Python、C、C扩展和Cython效率对比</h1>
+<h2>斐波那契数列代码</h2>
+<ol>
+<li>
+<p>纯Python
+    <code>python
+    def fib(n):
+        a, b = 0.0, 1.0
+        for i in range(n):
+            a, b = a + b, a
+        return a</code></p>
+</li>
+<li>
+<p>纯C
+    <code>c
+    double cfib(int n) {
+        int i;
+        double a=0.0, b=1.0, tmp;
+        for (i=0; i&lt;n; ++i) {
+            tmp = a; a = a + b; b = tmp;
+        }
+        return a;
+    }</code></p>
+</li>
+<li>
+<p>C扩展</p>
+<p><code>c
+static PyObject *
+fib(PyObject *self, PyObject *n) {
+    if (!PyLong_CheckExact(n)) {
+        PyErr_Format(PyExc_ValueError, "function fib excepted int, not %s", Py_TYPE(n) -&gt; tp_name);
+        return NULL;
+    }
+    PyObject *z;
+    double a = 0.0, b = 1.0, tmp;
+    int i;
+    for (i = 0; i &lt; PyLong_AsLong(n); i++){
+        tmp = a; a = a + b; b = tmp;
+    }
+    z = PyFloat_FromDouble(a);
+    return z;
+}</code></p>
+</li>
+<li>
+<p>Cython</p>
+<p><code>python
+def fib(int n):
+    cdef int i
+    cdef double a = 0.0, b = 1.0
+    for i in range(n):
+        a, b = a + b, a
+    return a</code></p>
+</li>
+</ol>
+<h2>测试结果</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;"></th>
+<th style="text-align: right;">fib(0)耗时/ns</th>
+<th style="text-align: right;">提升倍数</th>
+<th style="text-align: right;">fib(90)耗时/ns</th>
+<th style="text-align: right;">提升倍数</th>
+<th style="text-align: right;">循环体耗时/ns</th>
+<th style="text-align: right;">提升倍数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">纯Python</td>
+<td style="text-align: right;">590</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">12852</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">12262</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: right;">纯C</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">295</td>
+<td style="text-align: right;">164</td>
+<td style="text-align: right;">78</td>
+<td style="text-align: right;">162</td>
+<td style="text-align: right;">76</td>
+</tr>
+<tr>
+<td style="text-align: right;">C扩展</td>
+<td style="text-align: right;">220</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">386</td>
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">166</td>
+<td style="text-align: right;">74</td>
+</tr>
+<tr>
+<td style="text-align: right;">Cython</td>
+<td style="text-align: right;">90</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">258</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">168</td>
+<td style="text-align: right;">73</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>fib(0), 显然它没有真正进行循环, 测量的是调用一个函数所需要花费的开销</li>
+<li>循环体耗时, 是执行 fib(90) 的时候, 排除函数调用本身的开销, 也就是执行内部循环体所花费的时间</li>
+</ul>
+<h2>差异分析</h2>
+<ol>
+<li>Python 调用一个函数的时候需要创建一个栈帧, 而这个栈帧是分配在堆上的, 而且结束之后还要涉及栈帧的销毁</li>
+<li>C 扩展本质也是 C 语言, 只不过在编写的时候遵循 Python 提供的 API 规范, 可以将 C 代码编译成 pyd 文件, 直接让 Python 来调用</li>
+<li>Cython 做的事情和 C 扩展本质是类似, 都是为 Python 提供扩展模块</li>
+</ol>
+<hr>
+<ul>
+<li>算数操作方面对比</li>
+<li>Python执行 a+b 等价于: 检测数据类型 -&gt; 判断是否有__add__以及能否相加 -&gt; 调用__add__方法, 将a 和 b 指向的对象进行相加 -&gt; 指针转化成 PyObject * 返回</li>
+<li>C 和 Cython 创建变量的时候就实现规定了类型, 因此编译之后的 a + b 只是一条简单的机器指令</li>
+<li>内存分配方面对比</li>
+<li>Python 中的对象是分配在堆上面, 本质上就是 C 中的 malloc 函数为结构体在堆区申请的一块内存. 堆区进行内存的分配和释放需要付出很大的代价</li>
+<li>Cython 分配的变量是分配在栈上, 由操作系统维护的，会自动回收，效率极高</li>
+</ul>
+<h2>总结</h2>
+<div class="highlight"><pre><span></span><code>并非所有的 Python 代码在使用 Cython 时, 都能获得巨大的性能改进. 比如: 内存密集、I/O 密集、网络密集
+</code></pre></div>
+                <div class="clear"></div>
+
+                <div class="info">
+                    <a href="/01-chu-shi-cython.html">posted at 10:20</a>
+                    &nbsp;&middot;&nbsp;<a href="/category/python.html" rel="tag">Python</a>
+                    &nbsp;&middot;
+                    &nbsp;<a href="/tag/cython.html" class="tags selected">cython</a>
+                </div>
+            </article>            <h4 class="date">12月 03, 2010</h4>
+
+            <article class="post">
+                <h2 class="title">
+                    <a href="/02-cythonde-bian-yi-fang-shi.html" rel="bookmark" title="Permanent Link to &quot;02-cython的编译方式&quot;">02-cython的编译方式</a>
+                </h2>
+
+                
+                
+
+                <ul>
+<li><a href="#编译过程">编译过程</a></li>
+<li><a href="#环境搭建">环境搭建</a></li>
+<li><a href="#一distutils-手动编译">一、distutils 手动编译</a></li>
+<li><a href="#11-只编译cython代码">1.1 只编译Cython代码</a></li>
+<li><a href="#12-编译引入c代码的cython代码">1.2 编译引入C代码的Cython代码</a></li>
+<li><a href="#总结">总结</a></li>
+<li><a href="#二通过-ipython-动态交互-cython">二、通过 IPython 动态交互 Cython</a></li>
+<li><a href="#三导包的时候编译">三、导包的时候编译</a></li>
+<li><a href="#31-使用-pximport-即时编译">3.1 使用 pximport 即时编译</a></li>
+<li><a href="#32-控制-pyximport-并管理依赖">3.2 控制 pyximport 并管理依赖</a></li>
+</ul>
+<h1>编译过程</h1>
+<ol>
+<li>
+<p>cython 编译器负责将 Cython 转换成经过优化并且依赖当前平台的 C、C++ 代码</p>
+</li>
+<li>
+<p>使用标准的 C、C++ 编译器将第一步得到的 C、C++ 代码进行编译并生成标准的扩展模块</p>
+<ul>
+<li>扩展模块依赖特定的平台. linux平台, 编译生成so扩展; windows平台, 编译生成pyd扩展</li>
+<li>扩展模块可以直接被 Python 解释器进行 import</li>
+</ul>
+</li>
+</ol>
+<h1>环境搭建</h1>
+<ol>
+<li>
+<p>安装C、C++编译器</p>
+<ul>
+<li>linux平台</li>
+<li>自带gcc, 无需安装</li>
+<li>
+<p>yum install python3-devel</p>
+</li>
+<li>
+<p>windows平台</p>
+</li>
+<li>下载Visual Studio 或者 安装<a href="https://sourceforge.net/projects/mingw/files/">MinGW</a>并设置到环境变量中</li>
+<li><a href="https://zhuanlan.zhihu.com/p/471661231">详见</a></li>
+</ul>
+</li>
+<li>
+<p>安装Cython编译器</p>
+<p>pip install cython</p>
+</li>
+</ol>
+<h1>一、distutils 手动编译</h1>
+<h2>1.1 只编译Cython代码</h2>
+<p><a href="https://gitlab.com/pymango/cython/-/tree/master/Cython%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E7%B2%BE%E9%80%9A/Cython%E6%89%8B%E5%8A%A8%E7%BC%96%E8%AF%91/build_cython">详见</a></p>
+<ol>
+<li>
+<p>编写编译脚本build.py
+    ```python
+    from distutils.core import setup
+    from Cython.Build import cythonize</p>
+<p>setup(ext_modules=cythonize("fib.pyx", language_level=3))
+```</p>
+</li>
+<li>
+<p>执行编译命令</p>
+<p><code>python.exe build.py build</code></p>
+</li>
+</ol>
+<h2>1.2 编译引入C代码的Cython代码</h2>
+<p><a href="https://gitlab.com/pymango/cython/-/tree/master/Cython%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E7%B2%BE%E9%80%9A/Cython%E6%89%8B%E5%8A%A8%E7%BC%96%E8%AF%91/build_cython_c">详见</a></p>
+<ol>
+<li>
+<p>编写编译脚本build.py
+    ```python
+    from distutils.core import setup, Extension
+    from Cython.Build import cythonize</p>
+<p>ext = Extension(name="fib", sources=["fib.pyx", "cfib.c"])
+setup(ext_modules=cythonize(ext))
+```</p>
+</li>
+<li>
+<p>执行编译命令</p>
+<p><code>python.exe build.py build</code></p>
+</li>
+<li>
+<p>可能出错</p>
+<ul>
+<li><a href="https://blog.csdn.net/weixin_41423872/article/details/124407109">解决方案参考</a></li>
+</ul>
+</li>
+</ol>
+<h2>总结</h2>
+<ul>
+<li>如果是单个 pyx 文件的话, 那么直接通过 cythonize("xxx.pyx") 即可</li>
+<li>如果 pyx 文件还引入了 C 文件, 那么通过 cythonize(Extension(name="xx", sources=["", ""])) 的方式即可; name 是编译之后的扩展模块的名字, sources 是你要编译的源文件</li>
+</ul>
+<h1>二、通过 IPython 动态交互 Cython</h1>
+<ul>
+<li>jupyter notebook同理</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="c1"># 我们在 IPython 上运行，执行 %load_ext cython 便会加载 Cython 的一些魔法函数</span>
+<span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="o">%</span><span class="n">load_ext</span> <span class="n">cython</span>
+
+<span class="c1"># 然后神奇的一幕出现了，加上一个魔法命令，就可以直接写 Cython 代码</span>
+<span class="n">In</span> <span class="p">[</span><span class="mi">2</span><span class="p">]:</span> <span class="o">%%</span><span class="n">cython</span>
+   <span class="o">...</span><span class="p">:</span> <span class="k">def</span> <span class="nf">fib</span><span class="p">(</span><span class="nb">int</span> <span class="n">n</span><span class="p">):</span>
+   <span class="o">...</span><span class="p">:</span>     <span class="s2">&quot;&quot;&quot;这是一个 Cython 函数，在 IPython 上编写&quot;&quot;&quot;</span>
+   <span class="o">...</span><span class="p">:</span>     <span class="n">cdef</span> <span class="nb">int</span> <span class="n">i</span>
+   <span class="o">...</span><span class="p">:</span>     <span class="n">cdef</span> <span class="n">double</span> <span class="n">a</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="mf">1.0</span>
+   <span class="o">...</span><span class="p">:</span>     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+   <span class="o">...</span><span class="p">:</span>         <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span>
+   <span class="o">...</span><span class="p">:</span>     <span class="k">return</span> <span class="n">a</span>
+<span class="n">_cython_magic_0c221c85b2c3d523d965f7911ee5a741</span><span class="o">.</span><span class="n">c</span>
+<span class="n">_cython_magic_0c221c85b2c3d523d965f7911ee5a741</span><span class="o">.</span><span class="n">obj</span> <span class="p">:</span> <span class="n">warning</span> <span class="n">LNK4197</span><span class="p">:</span> <span class="n">export</span> <span class="s1">&#39;PyInit__cython_magic_0c221c85b2c3d523d965f7911ee5a741&#39;</span> <span class="n">specified</span> <span class="n">multiple</span> <span class="n">times</span><span class="p">;</span> <span class="n">using</span> <span class="n">first</span> <span class="n">specification</span>
+   <span class="n">Creating</span> <span class="n">library</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">CP</span>\<span class="o">.</span><span class="n">ipython</span>\<span class="n">cython</span>\<span class="n">Users</span>\<span class="n">CP</span>\<span class="o">.</span><span class="n">ipython</span>\<span class="n">cython</span>\<span class="n">_cython_magic_0c221c85b2c3d523d965f7911ee5a741</span><span class="o">.</span><span class="n">cp39</span><span class="o">-</span><span class="n">win_amd64</span><span class="o">.</span><span class="n">lib</span> <span class="ow">and</span> <span class="nb">object</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">CP</span>\<span class="o">.</span><span class="n">ipython</span>\<span class="n">cython</span>\<span class="n">Users</span>\<span class="n">CP</span>\<span class="o">.</span><span class="n">ipython</span>\<span class="n">cython</span>\<span class="n">_cython_magic_0c221c85b2c3d523d965f7911ee5a741</span><span class="o">.</span><span class="n">cp39</span><span class="o">-</span><span class="n">win_amd64</span><span class="o">.</span><span class="n">exp</span>
+<span class="n">Generating</span> <span class="n">code</span>
+<span class="n">Finished</span> <span class="n">generating</span> <span class="n">code</span>
+
+<span class="c1"># 测试用时, 平均花费34.2ns</span>
+<span class="n">In</span> <span class="p">[</span><span class="mi">3</span><span class="p">]:</span> <span class="o">%</span><span class="n">timeit</span> <span class="n">fib</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
+<span class="mf">34.2</span> <span class="n">ns</span> <span class="err">±</span> <span class="mf">0.399</span> <span class="n">ns</span> <span class="n">per</span> <span class="n">loop</span> <span class="p">(</span><span class="n">mean</span> <span class="err">±</span> <span class="n">std</span><span class="o">.</span> <span class="n">dev</span><span class="o">.</span> <span class="n">of</span> <span class="mi">7</span> <span class="n">runs</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span><span class="mi">000</span><span class="p">,</span><span class="mi">000</span> <span class="n">loops</span> <span class="n">each</span><span class="p">)</span>
+</code></pre></div>
+
+<h1>三、导包的时候编译</h1>
+<h2>3.1 使用 pximport 即时编译</h2>
+<p><a href="https://gitlab.com/pymango/cython/-/tree/master/Cython%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E7%B2%BE%E9%80%9A/Cython%E6%89%8B%E5%8A%A8%E7%BC%96%E8%AF%91/pxinport_compile">代码见</a>
+- Cython 源文件不会立刻编译, 只有当被导入的时候才会编译
+- Cython 源文件不变, 不会重复编译; Cython 源文件被修改, pyximport 会自动检测, 会重新编译</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># add.pyx</span>
+<span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="nb">int</span> <span class="n">a</span><span class="p">,</span> <span class="nb">int</span> <span class="n">b</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span>
+
+<span class="c1"># build.py</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">pyximport</span>
+<span class="c1"># 这里同样指定 language_level=3, 则表示针对的是py3, 因为这种方式也是要编译的</span>
+<span class="n">pyximport</span><span class="o">.</span><span class="n">install</span><span class="p">(</span><span class="n">language_level</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="c1"># 执行完之后, Python 解释器在导包的时候就会识别 Cython 文件了, 当然会先进行编译</span>
+
+<span class="kn">import</span> <span class="nn">add</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">22</span><span class="p">))</span>
+</code></pre></div>
+
+<h2>3.2 控制 pyximport 并管理依赖</h2>
+<p><a href="https://gitlab.com/pymango/cython/-/tree/master/Cython%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E7%B2%BE%E9%80%9A/Cython%E6%89%8B%E5%8A%A8%E7%BC%96%E8%AF%91/pyximport_compile">代码见</a>
+- .pyxbld 文件要和 .pyx 文件具有相同的基名, 且它们要位于同一目录中</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># fib.pyxbld</span>
+<span class="kn">from</span> <span class="nn">distutils.extension</span> <span class="kn">import</span> <span class="n">Extension</span>
+
+<span class="k">def</span> <span class="nf">make_ext</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">pyxfilename</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">Extension</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span>
+                     <span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="n">pyxfilename</span><span class="p">,</span> <span class="s2">&quot;../build_cython_c/cfib.c&quot;</span><span class="p">],</span>
+                     <span class="n">include_dirs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;../build_cython_c/&quot;</span><span class="p">])</span>
+
+<span class="c1"># build.py</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">pyximport</span>
+<span class="n">pyximport</span><span class="o">.</span><span class="n">install</span><span class="p">(</span><span class="n">language_level</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">fib</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">fib</span><span class="o">.</span><span class="n">fib_with_c</span><span class="p">(</span><span class="mi">50</span><span class="p">))</span>
+</code></pre></div>
+                <div class="clear"></div>
+
+                <div class="info">
+                    <a href="/02-cythonde-bian-yi-fang-shi.html">posted at 10:20</a>
+                    &nbsp;&middot;&nbsp;<a href="/category/python.html" rel="tag">Python</a>
+                    &nbsp;&middot;
+                    &nbsp;<a href="/tag/cython.html" class="tags selected">cython</a>
+                </div>
+            </article>            <h4 class="date">12月 03, 2010</h4>
+
+            <article class="post">
+                <h2 class="title">
+                    <a href="/03-shi-yong-cythonshi-fang-gilshi-xian-bing-xing-zhi-xing.html" rel="bookmark" title="Permanent Link to &quot;03-使用Cython释放GIL实现并行执行&quot;">03-使用Cython释放GIL实现并行执行</a>
+                </h2>
+
+                
+                
+
+                <ul>
+<li><a href="#一全局解释器锁gil">一、全局解释器锁(GIL)</a></li>
+<li><a href="#11-gil是什么">1.1 GIL是什么</a></li>
+<li><a href="#12-为什么会有-gil">1.2 为什么会有 GIL</a></li>
+<li><a href="#13-python线程机制">1.3 python线程机制</a></li>
+<li><a href="#14-gil调度机制">1.4 GIL调度机制</a></li>
+<li><a href="#二cython绕过gil限制">二、Cython绕过GIL限制</a></li>
+<li><a href="#21-为什么cython可以绕过gil">2.1 为什么Cython可以绕过GIL</a></li>
+<li><a href="#22-拓展python动态性">2.2 拓展python动态性</a></li>
+<li><a href="#23-cython-中如何管理-gil">2.3 Cython 中如何管理 GIL</a><ul>
+<li><a href="#231-nogil-函数属性">2.3.1 nogil 函数属性</a></li>
+<li><a href="#232-with-nogil-上下文管理器">2.3.2 with nogil 上下文管理器</a></li>
+</ul>
+</li>
+</ul>
+<h1>一、全局解释器锁(GIL)</h1>
+<h2>1.1 GIL是什么</h2>
+<ul>
+<li>GIL 是一个 施加在<font color='green'><em>解释器</em></font>层面上, <font color='green'><em>字节码</em></font>级别的互斥锁</li>
+<li>用于防止本机多个线程同时执行字节码, 保证每一条字节码在执行的时候都不会被打断</li>
+<li>GIL 确保 CPython 在程序执行期间，同一时刻只会使用操作系统的一个线程。不管你的 CPU 是多少核，以及你开了多少个线程，但是同一时刻只会使用操作系统的一个线程、去调度一个 CPU。而且 GIL 不仅影响 Python 代码，也会影响 Python/C API</li>
+<li>GIL 不是 Python 语言的特性, 是 <font color='green'><strong>CPython解释器</strong></font>开发人员为了方便内存管理加上去的</li>
+</ul>
+<h2>1.2 为什么会有 GIL</h2>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">dis</span>
+
+<span class="n">dis</span><span class="o">.</span><span class="n">dis</span><span class="p">(</span><span class="s2">&quot;del name&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">  1           0 DELETE_NAME              0 (name)</span>
+<span class="sd">              2 LOAD_CONST               0 (None)</span>
+<span class="sd">              4 RETURN_VALUE</span>
+<span class="sd">&quot;&quot;&quot;</span>
+</code></pre></div>
+
+<ul>
+<li>python 使用 del 删除一个变量的时候, 对应的指令是 DELETE_NAME</li>
+<li>这条指令做的事情就是通过宏 Py_DECREF 减少一个对象的引用计数，并且判断减少之后其引用计数是否为 0，如果为 0 就进行回收. 概括为2步<ol>
+<li>将对象的引用计数减 1</li>
+<li>判断引用计数是否为 0，为 0 则进行销毁</li>
+</ol>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">--</span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">ob_refcnt</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">obj</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">ob_refcnt</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">){</span>
+<span class="w">    </span><span class="n">销毁obj</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<ul>
+<li>
+<p>引入的问题：假设有两个线程 A 和 B，内部都引用了全局变量 obj，此时 obj 指向的对象的引用计数为 2，然后让两个线程都执行 del obj 这行代码</p>
+<ul>
+<li>
+<p>其中 A 线程先执行，如果 A 线程在执行完 --obj-&gt;ob_refcnt 之后，会将对象的引用计数减一，但不幸的是这个时候调度机制将 A 挂起了，唤醒了 B。而 B 也执行 del obj，但是它比较幸运，将两步都一块执行完了。但由于之前 A 已经将引用计数减1，所以 B 线程再减 1 之后会发现对象的引用计数为0，从而执行了对象的销毁动作，内存被释放</p>
+</li>
+<li>
+<p>然后 A 又被唤醒了，此时开始执行第二个步骤，但由于 obj-&gt;ob_refcnt 已经被减少到 0，所以条件满足，那么 A 依旧会对 obj 指向的对象进行释放，但是这个对象所占内存已经被释放了，所以 obj 此时就成了悬空指针。如果再对 obj 指向的对象进行释放，最终会引发什么结果</p>
+</li>
+</ul>
+</li>
+<li>
+<p>解决问题: 引入GIL</p>
+</li>
+<li>
+<p>由于引入 GIL，所以就不存在：在 A 将引用计数减一之后，挂起 A、唤醒 B 这一过程。因为A已经开始了 DELETE_NAME 这条指令的执行，所以在没执行完之前是不会发生线程调度的，此时就不会发生悬空指针的问题</p>
+</li>
+</ul>
+<h2>1.3 python线程机制</h2>
+<p><img alt="image-20230115095419874" src="https://i.328888.xyz/2023/01/15/2nR1C.png" title="178901278710458-pchen-20230115095420-bbc5544b69f15182c4c72ba903ab4caf.png"></p>
+<ul>
+<li>Python 线程是调用 C 的线程、进而调用操作系统的 OS 线程</li>
+<li>每个线程在执行过程中 Python 解释器控制不了，因为 Python 的控制范围只有在解释器这一层，无权干预 C 的线程、更无权干预 OS 线程</li>
+</ul>
+<p><img alt="image-20230115100232741" src="https://i.328888.xyz/2023/01/15/2ngDJ.png" title="524915507745237-pchen-20230115100232-dc429b7ed68de4d8f7fed9bed09c29a8.png"></p>
+<h2>1.4 GIL调度机制</h2>
+<ol>
+<li>当遇见 io 阻塞的时候会把锁释放, io 阻塞是不耗费 CPU 的, 此时虚拟机会把该线程的锁释放</li>
+<li>为了保证每个线程都有机会执行, 即便是耗费 CPU 的运算, 也会在执行一小段时间之后释放锁</li>
+</ol>
+<div class="highlight"><pre><span></span><code>import<span class="w"> </span>sys
+print<span class="o">(</span>sys.getcheckinterval<span class="o">())</span><span class="w">  </span><span class="c1"># 100</span>
+sys.setcheckinterval<span class="o">(</span>N<span class="o">)</span><span class="w">  </span><span class="c1"># 手动设置</span>
+</code></pre></div>
+
+<p>python3.8之前, 默认是执行 100 条字节码启动线程调度机制，进行切换</p>
+<div class="highlight"><pre><span></span><code>import<span class="w"> </span>sys
+print<span class="o">(</span>sys.getswitchinterval<span class="o">())</span><span class="w">  </span><span class="c1"># 0.005</span>
+sys.setswitchinterval<span class="o">(</span>N<span class="o">)</span><span class="w">  </span><span class="c1"># 手动设置</span>
+</code></pre></div>
+
+<p>现在, 更应该使用这个函数，表示线程切换的时间间隔</p>
+<h1>二、Cython绕过GIL限制</h1>
+<h2>2.1 为什么Cython可以绕过GIL</h2>
+<ul>
+<li>GIL是在解释器解释执行字节码的时候所施加的</li>
+<li>Cython 代码经过编译之后直接指向了 C 一级的结构，所以它相当于绕过了解释器解释执行这一步</li>
+<li>所以当我们在 Cython 中创建了不绑定任何 Python 对象的 C 级结构时, 可以将GIL释放掉</li>
+</ul>
+<h2>2.2 拓展python动态性</h2>
+<ul>
+<li>Python 的动态性，也是在解释器解释字节码的时候所赐予的</li>
+<li>Cython直接编译成C代码, 失去了相应动态特性</li>
+<li>所以能带来速度的提升</li>
+</ul>
+<h2>2.3 Cython 中如何管理 GIL</h2>
+<h3>2.3.1 nogil 函数属性</h3>
+<h3>2.3.2 with nogil 上下文管理器</h3>
+                <div class="clear"></div>
+
+                <div class="info">
+                    <a href="/03-shi-yong-cythonshi-fang-gilshi-xian-bing-xing-zhi-xing.html">posted at 10:20</a>
+                    &nbsp;&middot;&nbsp;<a href="/category/python.html" rel="tag">Python</a>
+                    &nbsp;&middot;
+                    &nbsp;<a href="/tag/cython.html" class="tags selected">cython</a>
+                </div>
+            </article>
+
+        </div>
+        <div class="clear"></div>
+    </div>
+</body>
+</html>

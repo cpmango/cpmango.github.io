@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="chinese (simplified)">
+<head>
+        <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>wikibook | 03-使用Cython释放GIL实现并行执行</title>
+    <link rel="shortcut icon" type="image/png" href="/favicon.png">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/theme/css/main.css" type="text/css" />
+    <link rel="stylesheet" href="/theme/css/pygments.css" type="text/css" />
+    <meta name="generator" content="Pelican" />
+    <meta name="description" content="" />
+    <meta name="author" content="sniper" />
+
+    <meta name="keywords" content="cython" />
+</head>
+<body>
+    <header>
+        <nav style="overflow: hidden;">
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="https://github.com/">GitHub</a></li>
+                <li><a href="/tags">Tags</a></li>
+                <li><a href="/authors">Authors</a></li>
+                <li><a href="/categories">Categories</a></li>
+                <li><a href="/archives">Archives</a></li>
+            </ul>
+        </nav>
+        <div class="header_box" style="height: 50px">
+        <h1><a href="/">
+            <image src='' class="avatar" width="50px" /><span class="site_title">wikibook</span>
+            </a></h1></div>
+        </div>
+    </header>
+    <div id="wrapper">
+        <div id="content">            <h4 class="date">12月 03, 2010</h4>
+
+            <article class="post">
+                <h2 class="title">
+                    <a href="/03-shi-yong-cythonshi-fang-gilshi-xian-bing-xing-zhi-xing.html" rel="bookmark" title="Permanent Link to &quot;03-使用Cython释放GIL实现并行执行&quot;">03-使用Cython释放GIL实现并行执行</a>
+                </h2>
+
+                
+                
+
+                <ul>
+<li><a href="#一全局解释器锁gil">一、全局解释器锁(GIL)</a></li>
+<li><a href="#11-gil是什么">1.1 GIL是什么</a></li>
+<li><a href="#12-为什么会有-gil">1.2 为什么会有 GIL</a></li>
+<li><a href="#13-python线程机制">1.3 python线程机制</a></li>
+<li><a href="#14-gil调度机制">1.4 GIL调度机制</a></li>
+<li><a href="#二cython绕过gil限制">二、Cython绕过GIL限制</a></li>
+<li><a href="#21-为什么cython可以绕过gil">2.1 为什么Cython可以绕过GIL</a></li>
+<li><a href="#22-拓展python动态性">2.2 拓展python动态性</a></li>
+<li><a href="#23-cython-中如何管理-gil">2.3 Cython 中如何管理 GIL</a><ul>
+<li><a href="#231-nogil-函数属性">2.3.1 nogil 函数属性</a></li>
+<li><a href="#232-with-nogil-上下文管理器">2.3.2 with nogil 上下文管理器</a></li>
+</ul>
+</li>
+</ul>
+<h1>一、全局解释器锁(GIL)</h1>
+<h2>1.1 GIL是什么</h2>
+<ul>
+<li>GIL 是一个 施加在<font color='green'><em>解释器</em></font>层面上, <font color='green'><em>字节码</em></font>级别的互斥锁</li>
+<li>用于防止本机多个线程同时执行字节码, 保证每一条字节码在执行的时候都不会被打断</li>
+<li>GIL 确保 CPython 在程序执行期间，同一时刻只会使用操作系统的一个线程。不管你的 CPU 是多少核，以及你开了多少个线程，但是同一时刻只会使用操作系统的一个线程、去调度一个 CPU。而且 GIL 不仅影响 Python 代码，也会影响 Python/C API</li>
+<li>GIL 不是 Python 语言的特性, 是 <font color='green'><strong>CPython解释器</strong></font>开发人员为了方便内存管理加上去的</li>
+</ul>
+<h2>1.2 为什么会有 GIL</h2>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">dis</span>
+
+<span class="n">dis</span><span class="o">.</span><span class="n">dis</span><span class="p">(</span><span class="s2">&quot;del name&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">  1           0 DELETE_NAME              0 (name)</span>
+<span class="sd">              2 LOAD_CONST               0 (None)</span>
+<span class="sd">              4 RETURN_VALUE</span>
+<span class="sd">&quot;&quot;&quot;</span>
+</code></pre></div>
+
+<ul>
+<li>python 使用 del 删除一个变量的时候, 对应的指令是 DELETE_NAME</li>
+<li>这条指令做的事情就是通过宏 Py_DECREF 减少一个对象的引用计数，并且判断减少之后其引用计数是否为 0，如果为 0 就进行回收. 概括为2步<ol>
+<li>将对象的引用计数减 1</li>
+<li>判断引用计数是否为 0，为 0 则进行销毁</li>
+</ol>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">--</span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">ob_refcnt</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">obj</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">ob_refcnt</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">){</span>
+<span class="w">    </span><span class="n">销毁obj</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<ul>
+<li>
+<p>引入的问题：假设有两个线程 A 和 B，内部都引用了全局变量 obj，此时 obj 指向的对象的引用计数为 2，然后让两个线程都执行 del obj 这行代码</p>
+<ul>
+<li>
+<p>其中 A 线程先执行，如果 A 线程在执行完 --obj-&gt;ob_refcnt 之后，会将对象的引用计数减一，但不幸的是这个时候调度机制将 A 挂起了，唤醒了 B。而 B 也执行 del obj，但是它比较幸运，将两步都一块执行完了。但由于之前 A 已经将引用计数减1，所以 B 线程再减 1 之后会发现对象的引用计数为0，从而执行了对象的销毁动作，内存被释放</p>
+</li>
+<li>
+<p>然后 A 又被唤醒了，此时开始执行第二个步骤，但由于 obj-&gt;ob_refcnt 已经被减少到 0，所以条件满足，那么 A 依旧会对 obj 指向的对象进行释放，但是这个对象所占内存已经被释放了，所以 obj 此时就成了悬空指针。如果再对 obj 指向的对象进行释放，最终会引发什么结果</p>
+</li>
+</ul>
+</li>
+<li>
+<p>解决问题: 引入GIL</p>
+</li>
+<li>
+<p>由于引入 GIL，所以就不存在：在 A 将引用计数减一之后，挂起 A、唤醒 B 这一过程。因为A已经开始了 DELETE_NAME 这条指令的执行，所以在没执行完之前是不会发生线程调度的，此时就不会发生悬空指针的问题</p>
+</li>
+</ul>
+<h2>1.3 python线程机制</h2>
+<p><img alt="image-20230115095419874" src="https://i.328888.xyz/2023/01/15/2nR1C.png" title="178901278710458-pchen-20230115095420-bbc5544b69f15182c4c72ba903ab4caf.png"></p>
+<ul>
+<li>Python 线程是调用 C 的线程、进而调用操作系统的 OS 线程</li>
+<li>每个线程在执行过程中 Python 解释器控制不了，因为 Python 的控制范围只有在解释器这一层，无权干预 C 的线程、更无权干预 OS 线程</li>
+</ul>
+<p><img alt="image-20230115100232741" src="https://i.328888.xyz/2023/01/15/2ngDJ.png" title="524915507745237-pchen-20230115100232-dc429b7ed68de4d8f7fed9bed09c29a8.png"></p>
+<h2>1.4 GIL调度机制</h2>
+<ol>
+<li>当遇见 io 阻塞的时候会把锁释放, io 阻塞是不耗费 CPU 的, 此时虚拟机会把该线程的锁释放</li>
+<li>为了保证每个线程都有机会执行, 即便是耗费 CPU 的运算, 也会在执行一小段时间之后释放锁</li>
+</ol>
+<div class="highlight"><pre><span></span><code>import<span class="w"> </span>sys
+print<span class="o">(</span>sys.getcheckinterval<span class="o">())</span><span class="w">  </span><span class="c1"># 100</span>
+sys.setcheckinterval<span class="o">(</span>N<span class="o">)</span><span class="w">  </span><span class="c1"># 手动设置</span>
+</code></pre></div>
+
+<p>python3.8之前, 默认是执行 100 条字节码启动线程调度机制，进行切换</p>
+<div class="highlight"><pre><span></span><code>import<span class="w"> </span>sys
+print<span class="o">(</span>sys.getswitchinterval<span class="o">())</span><span class="w">  </span><span class="c1"># 0.005</span>
+sys.setswitchinterval<span class="o">(</span>N<span class="o">)</span><span class="w">  </span><span class="c1"># 手动设置</span>
+</code></pre></div>
+
+<p>现在, 更应该使用这个函数，表示线程切换的时间间隔</p>
+<h1>二、Cython绕过GIL限制</h1>
+<h2>2.1 为什么Cython可以绕过GIL</h2>
+<ul>
+<li>GIL是在解释器解释执行字节码的时候所施加的</li>
+<li>Cython 代码经过编译之后直接指向了 C 一级的结构，所以它相当于绕过了解释器解释执行这一步</li>
+<li>所以当我们在 Cython 中创建了不绑定任何 Python 对象的 C 级结构时, 可以将GIL释放掉</li>
+</ul>
+<h2>2.2 拓展python动态性</h2>
+<ul>
+<li>Python 的动态性，也是在解释器解释字节码的时候所赐予的</li>
+<li>Cython直接编译成C代码, 失去了相应动态特性</li>
+<li>所以能带来速度的提升</li>
+</ul>
+<h2>2.3 Cython 中如何管理 GIL</h2>
+<h3>2.3.1 nogil 函数属性</h3>
+<h3>2.3.2 with nogil 上下文管理器</h3>
+                <div class="clear"></div>
+
+                <div class="info">
+                    <a href="/03-shi-yong-cythonshi-fang-gilshi-xian-bing-xing-zhi-xing.html">posted at 10:20</a>
+                    &nbsp;&middot;&nbsp;<a href="/category/python.html" rel="tag">Python</a>
+                    &nbsp;&middot;
+                    &nbsp;<a href="/tag/cython.html" class="tags">cython</a>
+                </div>
+            </article>
+        </div>
+        <div class="clear"></div>
+    </div>
+</body>
+</html>

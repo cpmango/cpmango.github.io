@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="chinese (simplified)">
+<head>
+        <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>wikibook | opencv-python源码安装</title>
+    <link rel="shortcut icon" type="image/png" href="/favicon.png">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/theme/css/main.css" type="text/css" />
+    <link rel="stylesheet" href="/theme/css/pygments.css" type="text/css" />
+    <meta name="generator" content="Pelican" />
+    <meta name="description" content="" />
+    <meta name="author" content="sniper" />
+
+    <meta name="keywords" content="opencv-python" />
+</head>
+<body>
+    <header>
+        <nav style="overflow: hidden;">
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="https://github.com/">GitHub</a></li>
+                <li><a href="/tags">Tags</a></li>
+                <li><a href="/authors">Authors</a></li>
+                <li><a href="/categories">Categories</a></li>
+                <li><a href="/archives">Archives</a></li>
+            </ul>
+        </nav>
+        <div class="header_box" style="height: 50px">
+        <h1><a href="/">
+            <image src='' class="avatar" width="50px" /><span class="site_title">wikibook</span>
+            </a></h1></div>
+        </div>
+    </header>
+    <div id="wrapper">
+        <div id="content">            <h4 class="date">12月 03, 2010</h4>
+
+            <article class="post">
+                <h2 class="title">
+                    <a href="/cv.html" rel="bookmark" title="Permanent Link to &quot;opencv-python源码安装&quot;">opencv-python源码安装</a>
+                </h2>
+
+                
+                
+
+                <ul>
+<li><a href="#背景介绍">背景介绍</a></li>
+<li><a href="#设置环境变量">设置环境变量</a></li>
+<li><a href="#一安装x264">一、安装x264</a></li>
+<li><a href="#二安装ffmpeg">二、安装ffmpeg</a></li>
+<li><a href="#三编译opencv-python">三、编译opencv-python</a></li>
+<li><a href="#补充静态库和动态库的区别">补充:静态库和动态库的区别</a></li>
+<li><a href="#引用">引用</a></li>
+</ul>
+<h1>源码编译支持h264编码的opencv python库</h1>
+<h2>背景介绍</h2>
+<ol>
+<li>FFmpeg默认支持H264的解码，但是并不支持H264的编码，如果想要让FFmpeg支持H264编码就要从外部引入X264进FFmpeg</li>
+<li><font color='red'> FFmpeg对第三方库通常是优先使用动态链接的 (为什么？怎么判断出来的？) </font></li>
+</ol>
+<h2>设置环境变量</h2>
+<div class="highlight"><pre><span></span><code>mkdir<span class="w"> </span>/home/sniper/local
+<span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span>/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/sniper/local/bin
+<span class="nb">export</span><span class="w"> </span><span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span>/home/sniper/local/lib
+<span class="nb">export</span><span class="w"> </span><span class="nv">PKG_CONFIG_PATH</span><span class="o">=</span>/home/sniper/local/lib/pkgconfig
+</code></pre></div>
+
+<h2>一、安装x264</h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># 下载源码</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/mirror/x264.git
+<span class="c1"># 编译</span>
+<span class="nb">cd</span><span class="w"> </span>x264/
+./configure<span class="w"> </span>--enable-shared<span class="w">  </span>--disable-asm<span class="w">  </span>--prefix<span class="o">=</span>/home/sniper/local
+</code></pre></div>
+
+<ul>
+<li>--enable-shared 表示生成动态库，如生成静态库将--enable-shared替换为--enable-static</li>
+<li>--prefix 生成库安装路径</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="c1"># 安装</span>
+make<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make<span class="w"> </span>install
+<span class="c1"># 查看版本信息</span>
+x264<span class="w"> </span>--version
+</code></pre></div>
+
+<h2>二、安装ffmpeg</h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># 下载源码</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/FFmpeg/FFmpeg.git
+<span class="c1"># 编译</span>
+<span class="nb">cd</span><span class="w"> </span>FFmpeg/<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>build
+../configure<span class="w"> </span>--enable-shared<span class="w"> </span>--enable-libx264<span class="w"> </span>--enable-gpl<span class="w"> </span>--disable-x86asm<span class="w"> </span>--prefix<span class="o">=</span>/home/sniper/local
+<span class="c1"># 安装</span>
+make<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make<span class="w"> </span>install
+<span class="c1"># 查看是否支持h264编码</span>
+ffmpeg<span class="w"> </span>-encoders<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>h264
+</code></pre></div>
+
+<h2>三、编译opencv-python</h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># 下载源码</span>
+git<span class="w"> </span>clone<span class="w"> </span>-b<span class="w"> </span><span class="m">64</span><span class="w"> </span>https://github.com/opencv/opencv-python.git
+<span class="c1"># 添加版本信息</span>
+<span class="nb">echo</span><span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;opencv_version = &#39;4.5.5.64&#39;\ncontrib = False\nheadless = False\nci_build = False&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>cv2/version.py
+<span class="c1"># 修改setup.py</span>
+sed<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;s/cmake_install_dir=cmake_install_reldir/_cmake_install_dir=cmake_install_reldir/g&quot;</span><span class="w"> </span>setup.py
+<span class="c1"># 下载opencv源码</span>
+rm<span class="w"> </span>-rf<span class="w"> </span>opencv<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>-b<span class="w"> </span><span class="m">4</span>.5.5<span class="w"> </span>https://github.com/opencv/opencv.git
+<span class="c1"># 安装、更新依赖</span>
+/home/sniper/py38/bin/pip<span class="w"> </span>install<span class="w"> </span>scikit-build<span class="w"> </span>numpy
+/home/sniper/py38/bin/pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip<span class="w"> </span>setuptools<span class="w"> </span>wheel
+<span class="c1"># 编译</span>
+rm<span class="w"> </span>-rf<span class="w"> </span>.git<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>/home/sniper/py38/bin/python<span class="w"> </span>setup.py<span class="w"> </span>bdist_wheel<span class="w"> </span>--build-type<span class="o">=</span>Debug
+</code></pre></div>
+
+<p>编译完成后, 会在dist目录下生成whl文件, 通过pip install dist/*.whl即可安装</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 验证</span>
+/home/sniper/py38/bin/python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import cv2&quot;</span>
+</code></pre></div>
+
+<p>其中还可能遇到world库相关报错时, 需要重新链接world相关的动态库</p>
+<h2>补充:静态库和动态库的区别</h2>
+<ol>
+<li>库</li>
+<li>库是写好的，现有的，成熟的，可以复用的代码</li>
+<li>库是一种可执行代码的二进制形式，可以被操作系统载入内存执行</li>
+<li>库有两种：静态库（.a、.lib）和动态库（.so、.dll）</li>
+<li>所谓静态、动态是指链接, 即静态库、动态库区别来自<strong>链接阶段</strong>如何处理</li>
+<li><a href="https://www.cnblogs.com/codingmengmeng/p/6046481.html">详见-静态库和动态库的区别</a></li>
+</ol>
+<h2>引用</h2>
+<ol>
+<li><a href="https://www.cnblogs.com/wanggang123/p/8660435.html">linux下编译ffmpeg 引入外部库x264</a></li>
+<li><a href="https://blog.csdn.net/mls805379973/article/details/103425343">ERROR: x265 not found using pkg-config的解决方法</a></li>
+<li><a href="https://blog.51cto.com/SpaceVision/3086952">解决ippicv下载慢的问题</a></li>
+<li><a href="https://www.jianshu.com/p/3c2fc0da7398">OpenCV中手动安装ippicv</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/392751819">在 Linux 系统中编译安装 OpenCV</a></li>
+</ol>
+                <div class="clear"></div>
+
+                <div class="info">
+                    <a href="/cv.html">posted at 10:20</a>
+                    &nbsp;&middot;&nbsp;<a href="/category/python.html" rel="tag">python</a>
+                    &nbsp;&middot;
+                    &nbsp;<a href="/tag/opencv-python.html" class="tags">opencv-python</a>
+                </div>
+            </article>
+        </div>
+        <div class="clear"></div>
+    </div>
+</body>
+</html>
